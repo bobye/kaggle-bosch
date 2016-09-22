@@ -8,26 +8,47 @@ import pyximport
 pyximport.install()
 import mcc
 
+UseAllFeature=True
+
+
 start_time=time.time()
 print('Load basic data ... ')
 numeric_feat=np.load('../data/numeric_feat.npz')['arr_0']
+date_feat=np.load('../data/date_feat.npy')
 label=np.load('../data/label.npy')
+feat=np.concatenate((numeric_feat, date_feat), axis=1)
 print('Finished: {} minutes'.format(round((time.time() - start_time)/60, 2)))
+
+
+if UseAllFeature:
+    feature_filter=np.full(feat.shape[1], False, np.bool)
+else:
+    feature_filter=np.load('feature_filter.npy')
+    feat=feat[:, feature_filter]
 
 print('Create 2-fold cv ... ')
 X_train, X_test, y_train, y_test = cross_validation.train_test_split( \
-    numeric_feat, label, stratify=label, test_size=0.5, random_state=777)
+    feat, label, stratify=label, test_size=0.5, random_state=777)
 print('Finished: {} minutes'.format(round((time.time() - start_time)/60, 2)))
+
+del(numeric_feat)
+del(date_feat)
+del(feat)
+del(label)
 
 
 tree_number=100
 random_seed=777
 fn=0.1
-clf=ensemble.RandomForestClassifier(n_estimators=tree_number, random_state=random_seed, verbose=1, n_jobs=16, oob_score=True, class_weight={1:100, 0:1}) # ~10 minutes
+clf=ensemble.RandomForestClassifier(n_estimators=tree_number, max_features=0.1, \
+                                    random_state=random_seed, verbose=1, n_jobs=16, oob_score=True, class_weight={1:100, 0:1})
 
 def cascade(X_train, X_test, y_train, y_test):
     print('Create cascade ... ')
     clf.fit(X_train, y_train)
+    if UseAllFeature:
+        cutoff_importance=numpy.percentil(clf.feature_importances_, 90)
+        feature_filter = feature_filter | clf.feature_importances_ >= cutoff_importance
     ytep=clf.predict_proba(X_test)[:,1]
     true_counts=sum(y_test)
     print('Test true counts:' + str(true_counts))
@@ -44,6 +65,9 @@ def cascade(X_train, X_test, y_train, y_test):
     print('Test Remaining: ' + str(remaining_counts))
     print('Test postive rate: ' + str((true_counts - FN) / remaining_counts))
     clf.fit(X_test, y_test)
+    if UseAllFeature:
+        cutoff_importance=numpy.percentil(clf.feature_importances_, 90)
+        feature_filter = feature_filter | clf.feature_importances_ >= cutoff_importance
     ytrp=clf.predict_proba(X_train)[:,1]
     trf=ytrp > threshold
     true_counts = sum(y_train)
@@ -65,7 +89,7 @@ y_test_pred=np.full(len(y_test), 0, np.float)
 def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, best_mcc=0):
     print('****************************************************************************')
     print('Current level:' + str(level))
-    params={'n_estimators': min(max(len(y_train0), len(y_test0)), round(tree_number * 2 ** level)), 'class_weight': {1:100/(level+1), 0:1}}
+    params={'n_estimators': min(max(sum(y_train0==1), sum(y_test0==1)), round(tree_number * 2 ** level)), 'class_weight': {1:100/(level+1), 0:1}}
     clf.set_params(**params)
     
     train_filter1, test_filter1, y_train_pred0, y_test_pred0 = cascade(X_train0, X_test0, y_train0, y_test0)
@@ -77,7 +101,7 @@ def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, b
     y_test_pred[test_filter]=y_test_pred0
     current_mcc=(mcc.eval_mcc(y_train, y_train_pred) + mcc.eval_mcc(y_test, y_test_pred))/2
     print('MCC:' + str(current_mcc))
-    if current_mcc > best_mcc + 0.0005 and level < max_level:
+    if current_mcc > best_mcc and level < max_level:
         best_mcc=current_mcc
         X_train1=X_train0[train_filter1]
         y_train1=y_train0[train_filter1]
@@ -89,7 +113,8 @@ def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, b
         
 
 run_level(X_train, X_test, y_train, y_test)
-
+if UseAllFeature:
+    np.save('feature_filter.npy', feature_filter)
 
 
 
