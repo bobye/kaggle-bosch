@@ -38,16 +38,16 @@ def cascade(X_train, X_test, y_train, y_test):
             threshold= i / tree_number
             break
     print('Test FN: '+ str(FN))
-    test_filter=ytep > threshold
+    tef=ytep > threshold
     remaining_counts=sum(ytep > threshold)
     print('Test Remaining: ' + str(remaining_counts))
     clf.fit(X_test, y_test)
     ytrp=clf.predict_proba(X_train)[:,1]
-    train_filter=ytrp > threshold
+    trf=ytrp > threshold
     print('Train true counts:' + str(sum(y_train)))
     print('Train FN: '+ str(sum(ytrp[y_train==1]<=threshold)))
     print('Train Remaining: ' + str(sum(ytrp > threshold)))       
-    return train_filter, test_filter, ytrp, ytep
+    return trf, tef, ytrp, ytep
 
 
 
@@ -81,6 +81,11 @@ def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, b
         
 
 run_level(X_train, X_test, y_train, y_test)
+
+
+
+
+
 
 
 
