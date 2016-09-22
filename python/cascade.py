@@ -28,26 +28,26 @@ clf=ensemble.RandomForestClassifier(n_estimators=tree_number, random_state=rando
 def cascade(X_train, X_test, y_train, y_test):
     print('Create cascade ... ')
     clf.fit(X_train, y_train)
-    y_test_pred=clf.predict_proba(X_test)[:,1]
+    ytep=clf.predict_proba(X_test)[:,1]
     true_counts=sum(y_test)
     print('Test true counts:' + str(true_counts))
     threshold=0
     for i in range(tree_number):
-        FN=sum(y_test_pred[y_test==1] <= i/tree_number)
+        FN=sum(ytep[y_test==1] <= i/tree_number)
         if FN > fn * true_counts:
             threshold= i / tree_number
             break
     print('Test FN: '+ str(FN))
-    test_filter=y_test_pred > threshold
-    remaining_counts=sum(y_test_pred > threshold)
+    test_filter=ytep > threshold
+    remaining_counts=sum(ytep > threshold)
     print('Test Remaining: ' + str(remaining_counts))
     clf.fit(X_test, y_test)
-    y_train_pred=clf.predict_proba(X_train)[:,1]
-    train_filter=y_train_pred > threshold
+    ytrp=clf.predict_proba(X_train)[:,1]
+    train_filter=ytrp > threshold
     print('Train true counts:' + str(sum(y_train)))
-    print('Train FN: '+ str(sum(y_train_pred[y_train==1]<=threshold)))
-    print('Train Remaining: ' + str(sum(y_train_pred > threshold)))       
-    return train_filter, test_filter, y_train_pred, y_test_pred
+    print('Train FN: '+ str(sum(ytrp[y_train==1]<=threshold)))
+    print('Train Remaining: ' + str(sum(ytrp > threshold)))       
+    return train_filter, test_filter, ytrp, ytep
 
 
 
