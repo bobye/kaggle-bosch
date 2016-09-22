@@ -41,6 +41,7 @@ def cascade(X_train, X_test, y_train, y_test):
     tef=ytep > threshold
     remaining_counts=sum(ytep > threshold)
     print('Test Remaining: ' + str(remaining_counts))
+
     clf.fit(X_test, y_test)
     ytrp=clf.predict_proba(X_train)[:,1]
     trf=ytrp > threshold
@@ -53,16 +54,18 @@ def cascade(X_train, X_test, y_train, y_test):
 
 train_filter=np.full(len(y_train), True, np.bool)
 test_filter=np.full(len(y_test), True, np.bool)
-y_train_pred=np.full(len(y_train), 0, np.int32)
-y_test_pred=np.full(len(y_test), 0, np.int32)
+y_train_pred=np.full(len(y_train), 0, np.float)
+y_test_pred=np.full(len(y_test), 0, np.float)
 
 def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, best_mcc=0):
     print('****************************************************************************')
     print('Current level:' + str(level))
-    params={'n_estimators': tree_number * 2 ** level, 'class_weight': {1:100/(level+1), 0:1}}
+    params={'n_estimators': tree_number * 2 ** level, 'class_weight': {1:tree_number/(level+1), 0:1}}
     clf.set_params(**params)
     
     train_filter1, test_filter1, y_train_pred0, y_test_pred0 = cascade(X_train0, X_test0, y_train0, y_test0)
+    if not max(y_train_pred0) > 0: raise AssertionError
+    if not sum(train_filter) == len(y_train_pred0): raise AssertionError
     y_train_pred[~train_filter]=0
     y_train_pred[train_filter]=y_train_pred0
     y_test_pred[~test_filter]=0
