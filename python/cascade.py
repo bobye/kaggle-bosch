@@ -22,7 +22,7 @@ print('Finished: {} minutes'.format(round((time.time() - start_time)/60, 2)))
 
 tree_number=100
 random_seed=777
-fn=0.01
+fn=0.1
 clf=ensemble.RandomForestClassifier(n_estimators=tree_number, random_state=random_seed, verbose=1, n_jobs=4, oob_score=True, class_weight={1:100, 0:1}) # ~10 minutes
 
 def cascade(X_train, X_test, y_train, y_test):
@@ -32,10 +32,11 @@ def cascade(X_train, X_test, y_train, y_test):
     true_counts=sum(y_test)
     print('Test true counts:' + str(true_counts))
     threshold=0
-    for i in range(tree_number):
-        FN=sum(ytep[y_test==1] <= i/tree_number)
+    total_tn=len(clf.estimators_)
+    for i in range(total_tn):
+        FN=sum(ytep[y_test==1] <= i/total_tn)
         if FN > fn * true_counts:
-            threshold= i / tree_number
+            threshold= i / total_tn
             break
     print('Test FN: '+ str(FN))
     tef=ytep > threshold
@@ -60,7 +61,7 @@ y_test_pred=np.full(len(y_test), 0, np.float)
 def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, best_mcc=0):
     print('****************************************************************************')
     print('Current level:' + str(level))
-    params={'n_estimators': tree_number * 2 ** level, 'class_weight': {1:100/(level+1), 0:1}}
+    params={'n_estimators': round(tree_number * 2 ** level), 'class_weight': {1:100/(level+1), 0:1}}
     clf.set_params(**params)
     
     train_filter1, test_filter1, y_train_pred0, y_test_pred0 = cascade(X_train0, X_test0, y_train0, y_test0)
@@ -84,6 +85,9 @@ def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, b
         
 
 run_level(X_train, X_test, y_train, y_test)
+
+
+
 
 
 
