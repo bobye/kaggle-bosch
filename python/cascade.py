@@ -47,7 +47,7 @@ def cascade(X_train, X_test, y_train, y_test):
     print('Create cascade ... ')
     clf.fit(X_train, y_train)
     if UseAllFeature:
-        cutoff_importance=np.percentil(clf.feature_importances_, 90)
+        cutoff_importance=np.percentile(clf.feature_importances_, 90)
         feature_filter = feature_filter | clf.feature_importances_ >= cutoff_importance
     ytep=clf.predict_proba(X_test)[:,1]
     true_counts=sum(y_test)
@@ -66,7 +66,7 @@ def cascade(X_train, X_test, y_train, y_test):
     print('Test postive rate: ' + str((true_counts - FN) / remaining_counts))
     clf.fit(X_test, y_test)
     if UseAllFeature:
-        cutoff_importance=np.percentil(clf.feature_importances_, 90)
+        cutoff_importance=np.percentile(clf.feature_importances_, 90)
         feature_filter = feature_filter | clf.feature_importances_ >= cutoff_importance
     ytrp=clf.predict_proba(X_train)[:,1]
     trf=ytrp > threshold
