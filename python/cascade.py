@@ -60,7 +60,7 @@ y_test_pred=np.full(len(y_test), 0, np.float)
 def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, best_mcc=0):
     print('****************************************************************************')
     print('Current level:' + str(level))
-    params={'n_estimators': tree_number * 2 ** level, 'class_weight': {1:tree_number/(level+1), 0:1}}
+    params={'n_estimators': tree_number * 2 ** level, 'class_weight': {1:100/(level+1), 0:1}}
     clf.set_params(**params)
     
     train_filter1, test_filter1, y_train_pred0, y_test_pred0 = cascade(X_train0, X_test0, y_train0, y_test0)
