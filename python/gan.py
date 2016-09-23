@@ -69,5 +69,5 @@ for i in range(1000):
 hidden = Sequential()
 hidden.add(Dense(256, weights=decoder.layers[0].get_weights(), input_dim=data.shape[1], activation='relu', bias=False))
 hidden.add(Dense(128, weights=decoder.layers[2].get_weights(), activation='linear'))
-numeric_hidden=hidden._predict(numeric_feat)
-np.savez_compressed('numeric_hidden.npz', numeric_hidden)
+numeric_hidden=hidden.predict(numeric_feat)
+np.savez_compressed('../data/numeric_hidden.npz', numeric_hidden)
