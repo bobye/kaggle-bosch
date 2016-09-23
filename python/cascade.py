@@ -8,7 +8,7 @@ import pyximport
 pyximport.install()
 import mcc
 
-UseAllFeature=True
+UseAllFeature=False
 
 
 start_time=time.time()
@@ -16,7 +16,10 @@ print('Load basic data ... ')
 numeric_feat=np.load('../data/numeric_feat.npz')['arr_0']
 date_feat=np.load('../data/date_feat.npy')
 label=np.load('../data/label.npy')
-feat=np.concatenate((numeric_feat, date_feat), axis=1)
+feat=np.hstack((numeric_feat, date_feat))
+
+#numeric_hidden=np.load('../data/numeric_hidden.npz')['arr_0']
+#feat=np.hstack((feat, numeric_hidden))
 print('Finished: {} minutes'.format(round((time.time() - start_time)/60, 2)))
 
 
@@ -92,8 +95,8 @@ def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, b
     print('Current level:' + str(level))
     params={'n_estimators': min(max(sum(y_train0==1), sum(y_test0==1)), round(tree_number * 2 ** level)), 'class_weight': {1:100/(level+1), 0:1}}
     clf.set_params(**params)
-    
     train_filter1, test_filter1, y_train_pred0, y_test_pred0 = cascade(X_train0, X_test0, y_train0, y_test0)
+
     if not max(y_train_pred0) > 0: raise AssertionError
     if not sum(train_filter) == len(y_train_pred0): raise AssertionError
     y_train_pred[~train_filter]=0
@@ -109,7 +112,7 @@ def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, b
         X_test1=X_test0[test_filter1]
         y_test1=y_test0[test_filter1]
         train_filter[train_filter]=train_filter1
-        test_filter[test_filter]=test_filter1
+        test_filter[test_filter]=test_filter1        
         run_level(X_train1, X_test1, y_train1, y_test1, level=level+1, best_mcc=best_mcc)
         
 
