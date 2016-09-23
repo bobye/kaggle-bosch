@@ -20,10 +20,9 @@ feat=np.concatenate((numeric_feat, date_feat), axis=1)
 print('Finished: {} minutes'.format(round((time.time() - start_time)/60, 2)))
 
 
-if UseAllFeature:
-    feature_filter=np.full(feat.shape[1], False, np.bool)
-else:
-    feature_filter=np.load('feature_filter.npy')
+feature_filter=np.full(feat.shape[1], False, np.bool)
+if not UseAllFeature:
+    feature_filter=np.load('../data/feature_filter.npy')
     feat=feat[:, feature_filter]
 
 print('Create 2-fold cv ... ')
@@ -48,7 +47,8 @@ def cascade(X_train, X_test, y_train, y_test):
     clf.fit(X_train, y_train)
     if UseAllFeature:
         cutoff_importance=np.percentile(clf.feature_importances_, 90)
-        feature_filter = feature_filter | clf.feature_importances_ >= cutoff_importance
+        global feature_filter
+        feature_filter = feature_filter | np.array(clf.feature_importances_ >= cutoff_importance)
     ytep=clf.predict_proba(X_test)[:,1]
     true_counts=sum(y_test)
     print('Test true counts:' + str(true_counts))
@@ -67,7 +67,8 @@ def cascade(X_train, X_test, y_train, y_test):
     clf.fit(X_test, y_test)
     if UseAllFeature:
         cutoff_importance=np.percentile(clf.feature_importances_, 90)
-        feature_filter = feature_filter | clf.feature_importances_ >= cutoff_importance
+        global feature_filter
+        feature_filter = feature_filter | np.array(clf.feature_importances_ >= cutoff_importance)
     ytrp=clf.predict_proba(X_train)[:,1]
     trf=ytrp > threshold
     true_counts = sum(y_train)
@@ -114,21 +115,4 @@ def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, b
 
 run_level(X_train, X_test, y_train, y_test)
 if UseAllFeature:
-    np.save('feature_filter.npy', feature_filter)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    np.save('../data/feature_filter.npy', feature_filter)
