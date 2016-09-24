@@ -4,16 +4,19 @@ from tqdm import tqdm
 from sklearn import cross_validation
 from sklearn import ensemble
 from sklearn import cluster
+from sklearn import metrics
 import pyximport
 pyximport.install()
 import mcc
 
-UseAllFeature=False
-
+UseAllFeature=True
+WriteFeatureFilt=False
 
 start_time=time.time()
 print('Load basic data ... ')
 numeric_feat=np.load('../data/numeric_feat.npz')['arr_0']
+#feature_filter_ttest=np.load('../data/feature_filter_ttest.npy')
+#numeric_feat=numeric_feat[:, feature_filter_ttest]
 date_feat=np.load('../data/date_feat.npy')
 label=np.load('../data/label.npy')
 feat=np.hstack((numeric_feat, date_feat))
@@ -96,14 +99,17 @@ def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, b
     params={'n_estimators': min(max(sum(y_train0==1), sum(y_test0==1)), round(tree_number * 2 ** level)), 'class_weight': {1:100/(level+1), 0:1}}
     clf.set_params(**params)
     train_filter1, test_filter1, y_train_pred0, y_test_pred0 = cascade(X_train0, X_test0, y_train0, y_test0)
-
-    if not max(y_train_pred0) > 0: raise AssertionError
-    if not sum(train_filter) == len(y_train_pred0): raise AssertionError
+#    if not max(y_train_pred0) > 0: raise AssertionError
+#    if not sum(train_filter) == len(y_train_pred0): raise AssertionError
     y_train_pred[~train_filter]=0
     y_train_pred[train_filter]=y_train_pred0
     y_test_pred[~test_filter]=0
     y_test_pred[test_filter]=y_test_pred0
-    current_mcc=(mcc.eval_mcc(y_train, y_train_pred) + mcc.eval_mcc(y_test, y_test_pred))/2
+    best_prob0, tmp0, tmp1 = mcc.eval_mcc(y_train, y_train_pred, show = True) 
+    best_prob1, tmp0, tmp1 = mcc.eval_mcc(y_test, y_test_pred, show = True)    
+    best_prob = (best_prob0 + best_prob1) / 2
+    current_mcc = (metrics.matthews_corrcoef(y_train, (y_train_pred > best_prob).astype(int)) + \
+                   metrics.matthews_corrcoef(y_test, (y_test_pred > best_prob).astype(int))) / 2
     print('MCC:' + str(current_mcc))
     if current_mcc > best_mcc and level < max_level:
         best_mcc=current_mcc
@@ -117,5 +123,5 @@ def run_level(X_train0, X_test0, y_train0, y_test0, level=0, max_level=np.inf, b
         
 
 run_level(X_train, X_test, y_train, y_test)
-if UseAllFeature:
+if UseAllFeature and WriteFeatureFilt:
     np.save('../data/feature_filter.npy', feature_filter)
